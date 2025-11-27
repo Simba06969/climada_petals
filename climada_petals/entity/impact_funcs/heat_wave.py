@@ -19,7 +19,7 @@ with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 Define impact functions for heat waves.
 """
 
-__all__ = ['ImpfHeatWave']
+__all__ = ['ImpfHeatWave', 'MAX_WBGT_INTENSITY', 'DEFAULT_SIGMOID_STEEPNESS']
 
 import logging
 import numpy as np
@@ -27,6 +27,18 @@ import numpy as np
 from climada.entity.impact_funcs.base import ImpactFunc
 
 LOGGER = logging.getLogger(__name__)
+
+# Maximum WBGT value in °C typically observed in extreme heat events
+# Values above 45°C are extremely rare in real-world conditions
+MAX_WBGT_INTENSITY = 45.0
+
+# Default steepness parameter for sigmoid function
+# Higher values create steeper transitions
+DEFAULT_SIGMOID_STEEPNESS = 0.5
+
+# Threshold below which mdd values are set to exactly zero
+# to avoid numerical artifacts
+MDD_ZERO_THRESHOLD = 0.01
 
 
 class ImpfHeatWave(ImpactFunc):
@@ -120,6 +132,7 @@ class ImpfHeatWave(ImpactFunc):
         impf_id=1,
         threshold=25.0,
         half_point=33.0,
+        steepness=DEFAULT_SIGMOID_STEEPNESS,
         intensity_unit='°C',
         name='Sigmoid function heat wave'
     ):
@@ -131,9 +144,9 @@ class ImpfHeatWave(ImpactFunc):
         impacts.
 
         The function is:
-            mdd = 1 / (1 + exp(-k * (intensity - half_point)))
+            mdd = 1 / (1 + exp(-steepness * (intensity - half_point)))
 
-        where k controls the steepness of the transition.
+        where steepness controls the steepness of the transition.
 
         Parameters
         ----------
@@ -145,6 +158,10 @@ class ImpfHeatWave(ImpactFunc):
         half_point : float, optional
             The WBGT value (in °C) at which impact is 50%.
             Default: 33.0°C
+        steepness : float, optional
+            Controls the steepness of the sigmoid transition.
+            Higher values create steeper transitions.
+            Default: 0.5
         intensity_unit : str, optional
             Unit of the intensity. Default: '°C'
         name : str, optional
@@ -165,15 +182,14 @@ class ImpfHeatWave(ImpactFunc):
         impf.name = name
         impf.intensity_unit = intensity_unit
 
-        # Create intensity array
-        impf.intensity = np.linspace(threshold, 45.0, 50)
+        # Create intensity array from threshold to maximum WBGT
+        impf.intensity = np.linspace(threshold, MAX_WBGT_INTENSITY, 50)
 
         # Compute sigmoid function
-        k = 0.5  # Steepness parameter
-        impf.mdd = 1 / (1 + np.exp(-k * (impf.intensity - half_point)))
+        impf.mdd = 1 / (1 + np.exp(-steepness * (impf.intensity - half_point)))
 
-        # Set values very close to 0 to exactly 0
-        impf.mdd[impf.mdd < 0.01] = 0.0
+        # Set values very close to 0 to exactly 0 to avoid numerical artifacts
+        impf.mdd[impf.mdd < MDD_ZERO_THRESHOLD] = 0.0
 
         impf.paa = np.ones(len(impf.intensity))
 

@@ -92,6 +92,21 @@ class TestImpfHeatWave(unittest.TestCase):
         self.assertTrue(np.all(impf.mdd >= 0))
         self.assertTrue(np.all(impf.mdd <= 1))
 
+    def test_from_sigmoid_function_custom_steepness(self):
+        """Test sigmoid function with custom steepness parameter"""
+        impf_steep = ImpfHeatWave.from_sigmoid_function(steepness=1.0)
+        impf_gentle = ImpfHeatWave.from_sigmoid_function(steepness=0.2)
+
+        # Steeper function should have larger gradient at half_point
+        # Compare mdd values at points away from half_point
+        half_point = 33.0
+        idx_below = np.argmin(np.abs(impf_steep.intensity - (half_point - 5)))
+        idx_above = np.argmin(np.abs(impf_steep.intensity - (half_point + 5)))
+
+        # Steep function should be closer to 0/1 at these points
+        self.assertLess(impf_steep.mdd[idx_below], impf_gentle.mdd[idx_below])
+        self.assertGreater(impf_steep.mdd[idx_above], impf_gentle.mdd[idx_above])
+
     def test_from_sigmoid_function_custom_halfpoint(self):
         """Test sigmoid function with custom half_point"""
         half_point = 30.0
