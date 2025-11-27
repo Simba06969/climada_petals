@@ -19,4 +19,5 @@ with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 init impact functions
 """
 from .drought import *
+from .heat_wave import *
 from .relative_cropyield import *
