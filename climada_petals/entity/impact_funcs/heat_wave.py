@@ -19,7 +19,8 @@ with CLIMADA. If not, see <https://www.gnu.org/licenses/>.
 Define impact functions for heat waves.
 """
 
-__all__ = ['ImpfHeatWave', 'MAX_WBGT_INTENSITY', 'DEFAULT_SIGMOID_STEEPNESS']
+__all__ = ['ImpfHeatWave', 'MAX_WBGT_INTENSITY', 'DEFAULT_SIGMOID_STEEPNESS',
+           'MDD_ZERO_THRESHOLD']
 
 import logging
 import numpy as np
@@ -114,11 +115,12 @@ class ImpfHeatWave(ImpactFunc):
 
         # Create intensity array with smooth transition at threshold
         epsilon = 0.1  # Small value for smooth step
+        max_intensity = min(threshold + 20.0, MAX_WBGT_INTENSITY)
         impf.intensity = np.array([
             0.,
             threshold - epsilon,
             threshold,
-            threshold + 20.0  # Max reasonable WBGT
+            max_intensity
         ])
         impf.mdd = np.array([0., 0., 1., 1.])
         impf.paa = np.ones(len(impf.intensity))
